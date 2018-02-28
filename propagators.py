@@ -159,6 +159,6 @@ def prop_GAC(csp, newVar=None):
                         cons_var = csp.get_cons_with_var(var)
                         for cv in cons_var:
                             if cv not in cons:
-                                cv.append(cons)
+                                cons.append(cv)
 
     return True, pruned

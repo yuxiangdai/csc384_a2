@@ -30,6 +30,8 @@ The grid-only models do not need to encode the cage constraints.
 '''
 from cspbase import *
 import itertools
+from functools import reduce
+import operator
 
 def binary_ne_grid(kenken_grid):
     #  ((3),(11,12,13,6,0),(21,22,31,2,2),....)
@@ -41,22 +43,12 @@ def binary_ne_grid(kenken_grid):
     for i in range(N):
         dom.append(i+1)
     
-    vars = [["" for x in range(N)] for y in range(N)]
-        
-    grid_vars = kenken_grid[1:]
-    for cage in grid_vars:
-        cells = cage[ :len(cage) - 2]
-        for cell in cells:
-            str_cell = str(cell)
-            
-            i = int(str_cell[0])
-            j = int(str_cell[1])
-            vars[i - 1][j - 1] = Variable('KenCSP'+ str_cell, dom)
-            
 
-    # vars = []
-    # for i in dom:
-    #     vars.append(Variable('Q{}'.format(i), dom))
+    vars = [["" for x in range(N)] for y in range(N)]
+    for i in dom:
+        for j in dom:
+            vars[i-1][j-1] = Variable('KenCSP{}{}'.format(i, j), dom)
+            
 
 
     cons = []
@@ -95,18 +87,12 @@ def nary_ad_grid(kenken_grid):
     dom = []
     for i in range(N):
         dom.append(i+1)
-    
-    vars = [["" for x in range(N)] for y in range(N)]
         
-    grid_vars = kenken_grid[1:]
-    for cage in grid_vars:
-        cells = cage[ :len(cage) - 2]
-        for cell in cells:
-            str_cell = str(cell)
-            
-            i = int(str_cell[0])
-            j = int(str_cell[1])
-            vars[i - 1][j - 1] = Variable('KenCSP'+ str_cell, dom)
+
+    vars = [["" for x in range(N)] for y in range(N)]
+    for i in dom:
+        for j in dom:
+            vars[i-1][j-1] = Variable('KenCSP{}{}'.format(i, j), dom)
                 
                    
      
@@ -149,17 +135,12 @@ def kenken_csp_model(kenken_grid):
         dom.append(i+1)
 
     vars = [["" for x in range(N)] for y in range(N)]
-    grid_vars = kenken_grid[1:]
-    for cage in grid_vars:
-        cells = cage[ :len(cage) - 2]
-        for cell in cells:
-            str_cell = str(cell)
-            i = int(str_cell[0])
-            j = int(str_cell[1])
-            vars[i - 1][j - 1] = Variable('KenCSP'+ str_cell, dom)
-    
+    for i in dom:
+        for j in dom:
+            vars[i-1][j-1] = Variable('KenCSP{}{}'.format(i, j), dom)
+
     ## n-ary 
-    cons = [] 
+    new_cons = [] 
     i = 0
     for row in vars:
         i += 1
@@ -169,10 +150,9 @@ def kenken_csp_model(kenken_grid):
         for t in itertools.permutations(range(N),N):
             addOne = tuple(x+1 for x in t)
             sat_tuples.append(addOne)
-
         con.add_satisfying_tuples(sat_tuples)
-        cons.append(con)
-    
+        new_cons.append(con)
+
     for i in range(N):    
         col = []
         for row in vars:
@@ -180,44 +160,58 @@ def kenken_csp_model(kenken_grid):
             
         con_col = Constraint("C(Column{})".format(i+1),col)
         con_col.add_satisfying_tuples(sat_tuples)
-        
-        cons.append(con_col)
+        new_cons.append(con_col)
 
-
-
-    i = 0
+    index = 0
+    new_cons_cage = []
+    denys_sat_tuples = []
     for cage in grid_vars:
         operation = cage[-1] 
         result = cage[-2] 
         cells = cage[ :len(cage) - 2]
-        scope = []
-        for cell in cells:
-            str_cell = str(cell)
-            i = int(str_cell[0])
-            j = int(str_cell[1])
-            scope.append(vars[i - 1][j - 1])
-        #  scope (an ORDERED list of variable objects)
-       
-        con = Constraint("KenKen_%i" % i, scope)
-       
-        for element in result:
-            pass
+        
+        if len(cells) != 0:
+            scope = []
+        
+            for cell in cells:
+                str_cell = str(cell)
+                i = int(str_cell[0])
+                j = int(str_cell[1])
+                scope.append(vars[i - 1][j - 1])
+            sat_tuples = []
+            options = list(itertools.product(list(range(1, N+1)), repeat = len(cells)))
+            con = Constraint("KenKen_%i" % index, scope)
+            for option in options:
+                
+                    if(operation == 0): 
+                        func = reduce((lambda x, y: x + y), option)
+                    elif(operation == 1): 
+                        func = reduce((lambda x, y: x - y), option)
+                    elif(operation == 2): 
+                        func = reduce((lambda x, y: x / y), option)
+                    elif(operation == 3): 
+                        func = reduce((lambda x, y: x * y), option)
 
-            
-            
-        cells = cage[ :len(cage) - 2]
-        for cell in cells:
-            str_cell = str(cell)
-            
-            i = int(str_cell[0])
-            j = int(str_cell[1])
-            vars[i - 1][j - 1] = Variable('KenCSP'+ str_cell, dom)
+                    if func == result:
+                        for perms in itertools.permutations(option):
+                            if perms not in sat_tuples:
+                                sat_tuples.append(perms)
+            denys_sat_tuples.append(sat_tuples)
+            con.add_satisfying_tuples(sat_tuples)
+            # new_cons_test.append(con)
+            new_cons_cage.append(con)
+        
 
-        i -= 1
+    vars_flat = list(itertools.chain(*vars))  ## flatten 2d array
+    csp = CSP("{}-KenCSP".format(N), vars_flat)
+    for c in new_cons:
+        csp.add_constraint(c)
+    for c in new_cons_cage:
+        csp.add_constraint(c)
+    return csp, vars
 
-
-
-kenken_grid = [[3],[11,21,3,0],[12,22,2,1],[13,23,33,6,3],[31,32,5,0]]
+kenken_grid = [[5],[11,12,21,22,10,0],[13,14,23,24,34,18,0],[15,25,35,2,1],[31,32,33,1,1],[41,42,43,51,52,53,600,3],[44,54,55,2,2],[45,3]]
+# kenken_grid = [[6],[11,12,13,2,2],[14,15,3,1],[16,26,36,11,0],[21,22,23,2,2],[24,25,34,35,40,3],[31,41,51,61,14,0],[32,33,42,43,52,53,3600,3],[44,54,64,120,3],[45,46,55,56,1,1],[62,63,5,1],[65,66,5,0]]
 kenken_csp_model(kenken_grid)
 
 
