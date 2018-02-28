@@ -87,6 +87,11 @@ def val_lcv(csp, var):
         ### test this vs  var.assign(x) result
             for var in vals2:
                 for val in var.cur_domain():
+                    '''
+                    Test if a variable value pair has a supporting tuple (a set of 
+                    assignments satisfying the constraint where each value is still in the 
+                    corresponding variables current domain.
+                    '''
                     if not c.has_support(var, val):
                         prunes += 1
 

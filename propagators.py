@@ -104,11 +104,13 @@ def prop_FC(csp, newVar=None):
             CurDom = x.cur_domain()
             for d in CurDom:
                 vals = []
+                
                 for var in vars:
                     '''return assigned value...returns None if is unassigned'''
                     vals.append(var.get_assigned_value())
                 vals[vars.index(x)] = d # Test one of the possible values in domain
 
+                
                 '''return true if and only if these value assignments satisfy the 
                 constraint'''
                 if not c.check(vals):
