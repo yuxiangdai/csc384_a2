@@ -31,7 +31,6 @@ The grid-only models do not need to encode the cage constraints.
 from cspbase import *
 import itertools
 from functools import reduce
-import operator
 
 def binary_ne_grid(kenken_grid):
     #  ((3),(11,12,13,6,0),(21,22,31,2,2),....)
@@ -164,7 +163,6 @@ def kenken_csp_model(kenken_grid):
 
     index = 0
     new_cons_cage = []
-    denys_sat_tuples = []
     for cage in grid_vars:
         operation = cage[-1] 
         result = cage[-2] 
@@ -196,7 +194,7 @@ def kenken_csp_model(kenken_grid):
                         for perms in itertools.permutations(option):
                             if perms not in sat_tuples:
                                 sat_tuples.append(perms)
-            denys_sat_tuples.append(sat_tuples)
+            
             con.add_satisfying_tuples(sat_tuples)
             # new_cons_test.append(con)
             new_cons_cage.append(con)
@@ -210,8 +208,8 @@ def kenken_csp_model(kenken_grid):
         csp.add_constraint(c)
     return csp, vars
 
-kenken_grid = [[5],[11,12,21,22,10,0],[13,14,23,24,34,18,0],[15,25,35,2,1],[31,32,33,1,1],[41,42,43,51,52,53,600,3],[44,54,55,2,2],[45,3]]
-# kenken_grid = [[6],[11,12,13,2,2],[14,15,3,1],[16,26,36,11,0],[21,22,23,2,2],[24,25,34,35,40,3],[31,41,51,61,14,0],[32,33,42,43,52,53,3600,3],[44,54,64,120,3],[45,46,55,56,1,1],[62,63,5,1],[65,66,5,0]]
-kenken_csp_model(kenken_grid)
+# kenken_grid = [[5],[11,12,21,22,10,0],[13,14,23,24,34,18,0],[15,25,35,2,1],[31,32,33,1,1],[41,42,43,51,52,53,600,3],[44,54,55,2,2],[45,3]]
+# # kenken_grid = [[6],[11,12,13,2,2],[14,15,3,1],[16,26,36,11,0],[21,22,23,2,2],[24,25,34,35,40,3],[31,41,51,61,14,0],[32,33,42,43,52,53,3600,3],[44,54,64,120,3],[45,46,55,56,1,1],[62,63,5,1],[65,66,5,0]]
+# kenken_csp_model(kenken_grid)
 
 

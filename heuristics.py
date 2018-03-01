@@ -26,17 +26,16 @@ def ord_dh(csp):
     unassigned = csp.get_all_unasgn_vars()
     max_index = -1
     max_degrees = -1
-
     for i in range(len(unassigned)):
         degree = 0
         var = unassigned[i]
         cons = csp.get_cons_with_var(var)
         for c in cons:
-            unassignedInConstraint = var.get_n_unasgn()
+            unassignedInConstraint = c.get_n_unasgn()
             if unassignedInConstraint > 1: # our var + other unassigned
                 degree += 1
         if degree > max_degrees:
-            i = max_index
+            max_index = i
             max_degrees = degree 
     return unassigned[max_index]
 
@@ -62,47 +61,43 @@ def val_lcv(csp, var):
     value that rules out the fewest values in the remaining variables (i.e., the variable that gives the most
     flexibility later on) to the value that rules out the most.'''
     CurDom = var.cur_domain()
-    unassigned = csp.get_all_unasgn_vars()
+    
     cons = csp.get_cons_with_var(var)
 
     pruneCount = []
 
 
     for d in CurDom:
-        
+        var.assign(d)
         prunes = 0
 
         for c in cons:
-            vars = c.get_scope()
-            vals = []
+
+            # print(vars.index(var))
            
-            
-            for variable in vars:
+            unassigned_vars = []
+            for variable in c.get_scope():
                 '''return assigned value...returns None if is unassigned'''
-                vals.append(variable.get_assigned_value())
-            vals[vars.index(var)] = d
+                if(variable.get_assigned_value() == None):
+                    unassigned_vars.append(variable)
 
-            vals2 = [val for val in vals if val == None]
-
-        ### test this vs  var.assign(x) result
-            for var in vals2:
-                for val in var.cur_domain():
+            for vari in unassigned_vars:
+                for value in vari.cur_domain():
                     '''
                     Test if a variable value pair has a supporting tuple (a set of 
                     assignments satisfying the constraint where each value is still in the 
                     corresponding variables current domain.
                     '''
-                    if not c.has_support(var, val):
+                    if not c.has_support(vari, value):
                         prunes += 1
 
-            ## check vals2/vals3 for support
-
-            ## store d, and # prunes
-        
+        # store d, and # prunes
         pruneCount.append((d , prunes))
+        var.unassign()
 
     sorted_by_second = sorted(pruneCount, key=lambda tup: tup[1])
     res_list = [x[0] for x in sorted_by_second]
+
     return res_list
                     
             
